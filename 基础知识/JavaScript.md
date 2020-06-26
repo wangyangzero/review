@@ -68,20 +68,32 @@ var newArr = arr.reduce(function (x, y) {
 `let | const`具有块级作用域，同时拥有暂时性死区的特性。  
 `const`声明的变量的值原理上是变量所指向的内存地址所存储的数据不变，所以当const声明一个基本类型值是它就不能修改，而声明一个对象时，地址上保存的是该对象的地址，它所指向的对象的数据结构是可变的。
 
+JSCore中，创建上下文环境时，`var`所处词法环境为变量环境，`const | let`所处词法环境为词法环境
+
 ### 箭头函数
 
 #### 箭头函数与普通函数的区别
 
 1. 箭头函数没有 this，所以需要通过查找作用域链来确定 this 的值。以最近的this作为自己的this
 2. 箭头函数没有自己的 arguments 对象，这不一定是件坏事，因为箭头函数可以访问外围函数的 arguments 对象：
-3. 不能通过 new 关键字调用，没有没有 new.target（new命令作用于的那个构造函数）
+3. 不能通过 new 关键字调用，没有 new.target（new命令作用于的那个构造函数）
 4. 没有原型，没有super
 
 #### 应用场景
 
-1. 上下文相关回调函数不能使用（this指向window），
+1. 上下文相关回调函数不能使用（this指向window），如动态`this`的回调函数
+
+```js
+let btn = document.getElementById('btn');
+btn.addEventListener('click', () => {
+  console.log(this.innerHTML);	// 这里会访问不到目标，因为此时this指向全局
+})
+```
+
 2. 对象方法不行（this绑定对象）
+
 3. 不能用作构造函数
+
 4. 可以用作类方法供自身使用
 
 ### 事件冒泡和事件捕获
@@ -118,17 +130,18 @@ var newArr = arr.reduce(function (x, y) {
 
 - basic
 
-```
+```js
 let name = Symbol('xiaohesong')
 typeof name // 'symbol'
 let obj = {}
 obj[name] = 'xhs'
 console.log(obj[name]) //xhs
+
 ```
 
 - symbol.for
 
-```
+```js
 let uid = Symbol.for("uid");
 let object = {
     [uid]: "12345"
@@ -147,7 +160,7 @@ console.log(uid2);              // "Symbol(uid)"
 
 - symbol.keyfor
 
-```
+```js
 let uid = Symbol.for("uid");
 console.log(Symbol.keyFor(uid));    // "uid"
 
@@ -416,7 +429,7 @@ Object.prototype.toString.call([])  //"[object Array]"
 6. 第二个参数作为函数可以实现类似数组map的方法
 7. 深拷贝
 
-```
+```js
 function deepClone(obj){
     return JSON.parse(JSON.stringify(obj,(key,value) => {
         switch(typeof value){
@@ -602,22 +615,22 @@ function fun(n,o){
   };
 }
 
-var a = fun(0);  // ?
-a.fun(1);        // ?        
-a.fun(2);        // ?
-a.fun(3);        // ?
+var a = fun(0);  // undefined
+a.fun(1);        // 0        
+a.fun(2);        // 0
+a.fun(3);        // 0
 
-var b = fun(0).fun(1).fun(2).fun(3);  // ?
+var b = fun(0).fun(1).fun(2).fun(3);  // undefined 0 1 2
 
-var c = fun(0).fun(1);  // ?
-c.fun(2);        // ?
-c.fun(3);        // ?
+var c = fun(0).fun(1);  // undefined 0
+c.fun(2);        // 1
+c.fun(3);        // 1
 
 ```
 
 ### this指向
 
-![image](https://github.com/huyaocode/webKnowledge/raw/master/img/this.png)
+![](https://i1.100024.xyz/i/2020/06/26/zoiuqu.png)
 
 this的指向在函数创建的时候是确定不了的，只有函数被调用的时候才能真正地确立下来。this指向的对象有三种情况。
 
@@ -626,6 +639,7 @@ this的指向在函数创建的时候是确定不了的，只有函数被调用�
 3. 一个函数有this，这个函数中包含多个对象，尽管函数被最外层对象调用，但this还是会指向它的上一级对象
 4. 构造函数中调用this，this指向新创建的对象
 5. 隐式调用，如通过call，apply等方法调用，指向的是传入的对象。
+6. 箭头函数中的this只会绑定上层函数的this并不会受call,apply等函数的影响
 
 ```javascript
 function a(){
@@ -664,6 +678,106 @@ var o = {
 }
 var j = o.b.fn;
 j();
+```
+
+##### 面试题
+
+```js
+var name = 'window'
+
+var person1 = {
+  name: 'person1',
+  show1: function () {
+    console.log(this.name)
+  },
+  show2: () => console.log(this.name),
+  show3: function () {
+    return function () {
+      console.log(this.name)
+    }
+  },
+  show4: function () {
+    return () => console.log(this.name)
+  }
+}
+var person2 = { name: 'person2' }
+
+person1.show1()
+person1.show1.call(person2)
+
+person1.show2()
+person1.show2.call(person2)
+
+person1.show3()()
+person1.show3().call(person2)
+person1.show3.call(person2)()
+
+person1.show4()()
+person1.show4().call(person2)
+person1.show4.call(person2)()
+
+// person1
+// person2
+
+// window
+// window
+
+// window
+// person2
+// window  这里是在person2中调用person1的高阶函数，this仍指向window
+
+// window
+// person1
+// person2
+
+var name = 'window'
+
+function Person (name) {
+  this.name = name;
+  this.show1 = function () {
+    console.log(this.name)
+  }
+  this.show2 = () => console.log(this.name)
+  this.show3 = function () {
+    return function () {
+      console.log(this.name)
+    }
+  }
+  this.show4 = function () {
+    return () => console.log(this.name)
+  }
+}
+
+var personA = new Person('personA')
+var personB = new Person('personB')
+
+personA.show1()
+personA.show1.call(personB)
+
+personA.show2()
+personA.show2.call(personB)
+
+personA.show3()()
+personA.show3().call(personB)
+personA.show3.call(personB)()
+
+personA.show4()()
+personA.show4().call(personB)
+personA.show4.call(personB)()
+
+// personA
+// personB
+
+// personA  这里箭头函数的上级不再是window而是函数对象
+// personA
+
+// window
+// personB
+// window
+
+// personA
+// personA
+// personB
 ```
 
 ### async和await
@@ -711,12 +825,12 @@ Function.prototype.myapply = function(ctx,args){
 
 ```js
 Function.prototype.my_bind = function(...args) {
-    let self = this, // 保存原函数
-        context = args[0];
-    return function(...arg) { // 返回一个新函数
-        self.apply(context,[].concat.call(args.slice(1), arg));
-    }
-};
+  let self = this;
+  let ctx = args[0];
+  return function(...arg) {
+    self.call(ctx,...args.slice(1).concat(arg))
+  }
+}
 
   function a(m, n, o) {
     console.log(this.name + ' ' + m + ' ' + n + ' ' + o);
@@ -812,27 +926,15 @@ son.prototype.constructor = son;
 
 新建一个父类对象的实例然后增强对象后返回该对象
 
-```
+```js
         // 寄生式继承  可以理解为在原型式继承的基础上增加一些函数或属性
         var ob = {
             name: 'xiaopao',
             friends: ['lulu','huahua']
         }
 
-        function CreateObj(o){
-            function F(){};  // 创建一个构造函数F
-            F.prototype = o;
-            return new F();
-        }
-
-        // 上面CreateObj函数 在ECMAScript5 有了一新的规范写法，Object.create(ob) 效果是一样的 , 看下面代码
-        var ob1 = CreateObj(ob);
-        var ob2 = Object.create(ob);
-        console.log(ob1.name); // xiaopao
-        console.log(ob2.name); // xiaopao
-
         function CreateOb(o){
-            var newob = CreateObj(o); // 创建对象 或者用 var newob = Object.create(ob)
+            var newob = Object.create(o); // 创建对象 或者用 var newob = Object.create(ob)
             newob.sayName = function(){ // 增强对象
                 console.log(this.name);
             }
@@ -992,17 +1094,17 @@ printSquare(5);
 
 #### 创建执行上下文
 
+**步骤如下**
+
 - **this绑定**：全局执行上下文中，`this`指向全局对象（混合模式），而函数中`this`的指向取决于函数的调用方式（总是指向直接调用的对象）
 - **创建词法环境**
   - **词法环境**有两个组件分别是**环境记录器**和**作用域**
     - **环境记录器**
-      - **全局环境**中，环境记录器是对象环境记录器，用来定义出现在全局上下文中变量和函数的关系
-      - **函数环境**中，环境记录器是声明式环境记录器，用于存储变量，函数和参数
-    - **作用域链:** 无论是 LHS 还是 RHS 查询，都会在当前的作用域开始查找，如果没有找到，就会向上级作用域继续查找目标标识符，每次上升一个作用域，一直到全局作用域为止。
-  - **全局环境**是没有外部环境引用的词法环境，其外部环境的引用是null
-  - **函数环境**中，函数内部用户自定义的变量存储在环境记录器中，并且引用的外部环境可能是全局环境或其他包含此函数的外部函数
-
-- **变量环境**：也是一个词法环境，拥有词法环境的所有属性。不同于词法环境组件的是：ES6中，变量环境存储`var`变量，而此词法环境组件用于存储`let | const`变量
+      - **全局环境**中，环境记录器是对象环境记录器，用来定义出现在全局上下文中变量和函数的关系。`全局环境是没有外部环境引用的词法环境，其外部环境的引用是null`
+      - **函数环境**中，环境记录器是声明式环境记录器，用于存储变量，函数和参数。`函数环境中，函数内部用户自定义的变量存储在环境记录器中，并且引用的外部环境可能是全局环境或其他包含此函数的外部函数`
+    - **作用域链:** 无论是 LHS 还是 RHS 查询，都会在当前的作用域开始查找，如果没有找到，就会向上级作用域继续查找目标标识符，每次上升一个作用域，一直到全局作用域为止。`LHS指的是a=?这样引用a；RHS指的是console.log(a) | return a；这样引用a;`
+    
+  - **变量环境**：也是一个词法环境，拥有词法环境的所有属性。不同于词法环境组件的是：ES6中，变量环境存储`var`变量，而此词法环境组件用于存储`let | const`变量
 
 #### 执行阶段
 
@@ -1032,14 +1134,14 @@ printSquare(5);
 #### 引用计数
 
 实时计算一个变量的引用次数，当引用次数达到零时销毁。
-![image](http://jiangliuer.vip/download/image/GC1.jpg)
+![Snipaste_2020-06-26_23-33-37.png](https://i.loli.net/2020/06/26/SrKExwCli2Qn7Up.png)
 好处是能够实时回收不再引用的变量的内存，最大的缺点是当两个变量互相引用时会造成内存泄漏
 
 #### 标记清除
 
 GC从全局作用域中的变量，沿作用域向里变量，也就是深度优先遍历。遍历到堆中的变量时打上一个标记，然后再递归遍历该对象所引用的对象，直到最后一个节点。
 遍历堆中对象，清除没有标记的对象，释放其内存。
-![image](http://jiangliuer.vip/download/image/GC2.jpg)  
+![Snipaste_2020-06-26_23-33-37.png](https://i.loli.net/2020/06/26/SrKExwCli2Qn7Up.png) 
 实现简单，解决了循环引用的问题，但两次遍历较耗时，变量得不到及时回收。
 
 ### js原型和原型链
@@ -1047,7 +1149,7 @@ js原型是一个容易混淆的概念。接下来我从三个属性来讲解js�
 #### `__proto__`: 
 对象所特有的属性，指向创建该对象构造函数的原型，它是由一个对象指向另一个对象。当我们访问一个对象的某个属性时，首先会在该对象实例上寻找该属性，如果没有找到则会去该对象`__proto__`所指向的对象上寻找，依次类推直到到达顶端的null。以上不断通过`__proto__`属性来连接对象直到顶端的null值形成的一条链表就成为原型链。
 #### prototype: 
-函数所特有的属性，指向函数的原型对象。它是由一个函数指向一个对象，当然函数本身也是一个特有的对象。该属性的作用是创建一个特定类型的所有实例可继承的公共属性和公共方法，任何函数在创建的同时也会默认创建一个prototype属性。原型链的终点是Object.prototype?null。
+函数所特有的属性，指向函数的原型对象。它是由一个函数指向一个对象，当然函数本身也是一个特有的对象。该属性的作用是创建一个特定类型的所有实例可继承的公共属性和公共方法，任何函数在创建的同时也会默认创建一个prototype属性。原型链的终点是Object.prototype
 #### constructor: 
 对象所特有的属性，指向对象的构造函数。它是由一个对象指向一个函数。constructor的终点是Function，所有的对象和函数都是由Function构造而来。
 ```
@@ -1148,6 +1250,7 @@ alert((new C1().name) + (new C2().name) + (new C3().name));
 
 ```http
 Content-Type: text/html; charset=utf-8
+// this one is important
 Content-Disposition: attachment; filename="cool.html"
 ```
 

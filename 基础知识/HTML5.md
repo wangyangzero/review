@@ -90,9 +90,9 @@ href指向网络上的资源，src将资源嵌入到当前文档中，在请求s
 
 ### html5 manifest
 
-```
+```html
 <html manifest="url"/>
-//url指向一个.appchche文件
+//url指向一个.appcache文件
 //配置表
 CACHE MANIFRST
 # 离线存储的资源

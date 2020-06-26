@@ -643,7 +643,7 @@ width:auto会使元素撑满整个父元素，margin、border、padding、conten
             background: green;
         }
 ```
-5. 双飞翼布局: 类似于双飞翼，但使用了子元素margin代替父容器的padding
+5. 双飞翼布局: 类似于圣杯，但使用了子元素margin代替父容器的padding
 ```css
         .root{
             height: 100%;

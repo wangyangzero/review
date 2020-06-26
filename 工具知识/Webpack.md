@@ -113,7 +113,7 @@ loader: 'babel-loader?cacheDirectory=true'
 1. 当修改了一个或多个文件；
 2. 文件系统接收更改并通知webpack；
 3. webpack重新编译构建一个或多个模块，并通知HMR服务器进行更新；
-4. HMR Server 使用webSocket通知HMR runtime 需要更新，HMR runtime通过HTTP请求更新jsonp；
+4. HMR Server 使用webSocket通知HMR runtime 需要更新，HMR runtime通过HTTP请求更新；
 5. HMR runtime替换更新中的模块，如果确定这些模块无法更新，则触发整个页面刷新。
 
 ## webpack性能优化
@@ -200,7 +200,7 @@ module.exports = {
 
 整个构建过程中，最费时的就是`Loader`对文件进行转译的操作了。
 
-`HappyPack`可以将任务分解给多个子进程，最后将结果发送给主线程。
+`HappyPack`可以将任务分解给多个子进程，最后将结果发送给主进程。
 
 ```js
 npm i -D happypack
@@ -374,7 +374,7 @@ console.log(appleModel)
 
 1. 修改.babelrc以保留ES6模块化语句：
 
-   ```
+   ```js
    {
        "presets": [
            [
@@ -383,14 +383,15 @@ console.log(appleModel)
            ]
        ]
    }
-   复制代码
    ```
-
+   
 2. 启动webpack时带上 --display-used-exports可以在shell打印出关于代码剔除的提示
 
 3. 使用UglifyJSPlugin，或者启动时使用--optimize-minimize
 
 4. 在使用第三方库时，需要配置 `resolve.mainFields: ['jsnext:main', 'main']` 以指明解析第三方库代码时，采用ES6模块化的代码入口
+
+[tree-sharking配置](https://webpack.js.org/guides/tree-shaking/#root)
 
 ### 优化输出质量--加速网络请求
 
@@ -478,9 +479,8 @@ plugins:[
            //minChunks:2, 表示文件要被提取出来需要在指定的chunks中出现的最小次数，防止common.js中没有代码的情况
        })        
    ]
-   
    ```
-
+   
 3. 至此得到了基础库代码`base.js`，不含基础库的公共代码`common.js`，和页面各自的代码文件`page.js`
 
 #### 分割代码实现按需加载
@@ -505,7 +505,6 @@ document.getElementById('btn').addEventListener('click',function(){
 module.exports = function (content) {
     window.alert('Hello ' + content);
 }
-
 
 // 配置
 output:{
@@ -532,7 +531,6 @@ module.exports = {
         new PrepackWebpackPlugin()
     ]
 }
-
 ```
 
 #### 使用`Scope Hoisting`
@@ -584,58 +582,5 @@ resolve:{
 - 配置`cache: true`，启用缓存提升构建速度
 - 开发环境下将`devtool`设置为`cheap-module-eval-source-map`，因为生成这种`source map`的速度最快，能加速构建。在生产环境下将`devtool`设置为`hidden-source-map`
 
-## tree sharking
 
-### 本质
 
-tree-sharking的本质是通过静态检查，判断出冗杂代码（不影响输出），然后消除这些代码。检查的依据是通过分析程序流，判断哪些变量未被使用、引用进而删除代码。
-
-### 为什么与ES6密切绑定
-
-**ES6 module的特点**
-
-- 只能作为模块顶层的语句出现
-- 模块之间的依赖关系是可以确定的，与运行时的状态无关
-- import的模块名只能是字符串常量
-
-### webpack旧版本为什么会出现tree-sharking看似失效的情况
-
-原因是函数式编程带来的副作用，一种简单的情况是未被使用的函数引用了外部的变量。
-
-而且使用webpack打包时通常会使用babel进行重新编码以适应各种版本，在babel转码时也会带来一些副作用
-
-```js
-export class Person {
-  constructor ({ name, age, sex }) {
-    this.className = 'Person'
-    this.name = name
-    this.age = age
-    this.sex = sex
-  }
-  getName () {
-    return this.name
-  }
-}
-export class Apple {
-  constructor ({ model }) {
-    this.className = 'Apple'
-    this.model = model
-  }
-  getModel () {
-    return this.model
-  }
-}
-// main.js
-import { Apple } from './components'
-
-const appleModel = new Apple({
-  model: 'IphoneX'
-}).getModel()
-
-console.log(appleModel)
-
-```
-
-### 在webpack中配置tree-sharking
-
-[tree-sharking配置](https://webpack.js.org/guides/tree-shaking/#root)

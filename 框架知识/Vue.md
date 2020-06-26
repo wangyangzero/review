@@ -1,13 +1,13 @@
 ### v-bind 和 v-model 的区别
 
-1.v-bind 用来绑定数据和属性以及表达式，缩写为'：'
-2.v-model 使用在表单中，实现双向数据绑定的，在表单元素外使用不起作用
+1.v-bind: 用来绑定数据和属性以及表达式，缩写为'：'
+2.v-model: 使用在表单中，实现双向数据绑定的，在表单元素外使用不起作用
 
 ### 什么是 mvvm？
 
 MVVM 是 Model-View-ViewModel 的缩写。mvvm 是一种设计思想。Model 层代表数据模型，也可以在 Model 中定义数据修改和操作的业务逻辑；View 代表 UI 组件，它负责将数据模型转化成 UI 展现出来，ViewModel 是一个同步 View 和 Model 的对象。
 
-在 MVVM 架构下，View 和 Model 之间并没有直接的联系，而是通过 ViewModel 进行交互，Model 和 ViewModel 之间的交互是双向的， 因此 View 数据的变化会同步到 Model 中，而 Model 数据的变化也会立即反应到 View 上。
+在 MVVM 架构下，View 和 Model 之间并没有直接的联系，而是通过 ViewModel 进行交互，Model 和 View 之间的交互是双向的， 因此 View 数据的变化会同步到 Model 中，而 Model 数据的变化也会立即反应到 View 上。
 
 ViewModel 通过双向数据绑定把 View 层和 Model 层连接了起来，而 View 和 Model 之间的同步工作完全是自动的，无需人为干涉，因此开发者只需关注业务逻辑，不需要手动操作 DOM, 不需要关注数据状态的同步问题，复杂的数据状态维护完全由 MVVM 来统一管理。
 
@@ -24,6 +24,8 @@ mvc 和 mvvm 其实区别并不大。都是一种设计思想。主要就是 mvc
 
 ### 请详细说下你对 vue 生命周期的理解？
 
+![](https://i1.100024.xyz/i/2020/06/26/ll15hv.png)
+
 答：总共分为 8 个阶段创建前/后，载入前/后，更新前/后，销毁前/后。
 
 - 创建前/后： 在 beforeCreate 阶段，vue 实例的挂载元素 el 还没有。
@@ -37,71 +39,88 @@ mvc 和 mvvm 其实区别并不大。都是一种设计思想。主要就是 mvc
 
 ```html
 //父组件通过标签上面定义传值
+// section父组件
 <template>
-  <main :obj="data"></main>
+  <div class="section">
+    <com-article :articles="articleList"></com-article>
+  </div>
 </template>
-<script>
-  //引入子组件
-  import Main form "./main"
 
-  exprot default{
-      name:"parent",
-      data(){
-          return {
-              data:"我要向子组件传递数据"
-          }
-      },
-      //初始化组件
-      components:{
-          Main
-      }
+<script>
+import comArticle from './test/article.vue'
+export default {
+  name: 'HelloWorld',
+  components: { comArticle },
+  data() {
+    return {
+      articleList: ['红楼梦', '西游记', '三国演义']
+    }
   }
+}
 </script>
 
-//子组件通过props方法接受数据
+
+// 子组件 article.vue
 <template>
-  <div>{{data}}</div>
+  <div>
+    <span v-for="(item, index) in articles" :key="index">{{item}}</span>
+  </div>
 </template>
+
 <script>
-  exprot default{
-      name:"son",
-      //接受父组件传值
-      props:["data"]
-  }
+export default {
+  props: ['articles']
+}
 </script>
+
 ```
 
 2. 子组件向父组件传递数据
 
 ```html
 //子组件通过$emit方法传递参数
+// 父组件中
 <template>
-  <div v-on:click="events"></div>
+  <div class="section">
+    <com-article :articles="articleList" @onEmitIndex="onEmitIndex"></com-article>
+    <p>{{currentIndex}}</p>
+  </div>
 </template>
+
 <script>
-  //引入子组件
-  import Main form "./main"
-
-  exprot default{
-      methods:{
-          events:function(){
-
-          }
-      }
+import comArticle from './test/article.vue'
+export default {
+  name: 'HelloWorld',
+  components: { comArticle },
+  data() {
+    return {
+      currentIndex: -1,
+      articleList: ['红楼梦', '西游记', '三国演义']
+    }
+  },
+  methods: {
+    onEmitIndex(idx) {
+      this.currentIndex = idx
+    }
   }
+}
 </script>
 
-//
-
 <template>
-  <div>{{data}}</div>
+  <div>
+    <div v-for="(item, index) in articles" :key="index" @click="emitIndex(index)">{{item}}</div>
+  </div>
 </template>
+
 <script>
-  exprot default{
-      name:"son",
-      //接受父组件传值
-      props:["data"]
+export default {
+  props: ['articles'],
+  methods: {
+    emitIndex(index) {
+      this.$emit('onEmitIndex', index)
+    }
   }
+}
 </script>
 ```
 
@@ -173,7 +192,7 @@ import home from "../../common/home.vue";
 
 ```js
 const home = (r) =>
-  require.ensure([], () => r(require("../../common/home.vue")));
+  require.ensure([],() => r(require('../../common/home.vue')))
 ```
 
 ### vuex 是什么？怎么使用？哪种功能场景使用它？
@@ -276,7 +295,7 @@ vue.js 是采用数据劫持结合发布者-订阅者模式的方式，通过 Ob
 
 vuex 仅仅是作为 vue 的一个插件而存在，不像 Redux,MobX 等库可以应用于所有框架，vuex 只能使用在 vue 上，很大的程度是因为其高度依赖于 vue 的 computed 依赖检测系统以及其插件系统，
 
-vuex 整体思想诞生于 flux,可其的实现方式完完全全的使用了 vue 自身的响应式设计，依赖监听、依赖收集都属于 vue 对对象 Property set get 方法的代理劫持。最后一句话结束 vuex 工作原理，vuex 中的 store 本质就是没有 template 的隐藏着的 vue 组件；
+vuex 整体思想诞生于 flux,可其的实现方式完完全全的使用了 vue 自身的响应式设计，依赖监听、依赖收集都属于 vue 对对象 Property set get 方法的代理劫持 。最后一句话结束 vuex 工作原理，vuex 中的 store 本质就是没有 template 的隐藏着的 vue 组件；
 
 ### 使用 Vuex 只需执行 Vue.use(Vuex)，并在 Vue 的配置中传入一个 store 对象的示例，store 是如何实现注入的？[美团](https://tech.meituan.com/vuex_code_analysis.html)
 

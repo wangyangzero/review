@@ -36,7 +36,7 @@
 所谓用户就是有权限访问数据库的人。
 
 #### 创建表
-```
+```sql
 创建表(方式1) 类似于白手起家来创建表
 CREATE TABLE myemployees(
 ID NUMBER(10),
@@ -44,6 +44,7 @@ NAME VARCHAR2(50),
 salary NUMBER(10, 2),
 hire_date DATE
 )
+
 
 创建表(方式2),依托于现有表来创建一张新表,不关是依托于现有表，连表中的数据也自动导入到了新表中
 CREATE TABLE myemployees2
@@ -57,7 +58,7 @@ FROM myemployees2
 ```
 
 #### crud列
-```
+```sql
 --增加列
 ALTER TABLE myemployees
 ADD (email VARCHAR2(30))
@@ -77,7 +78,7 @@ DROP TABLE myemployees2
 ```
 
 #### 插入数据
-```
+```sql
 // 明确只插入一条Value
 
 方式1、 INSERT INTO t1(field1,field2) VALUE(v001,v002);           
@@ -98,7 +99,7 @@ DROP TABLE myemployees2
 
 #### 更新数据
 使用运算式或数据值更新数据
-```
+```sql
  --更新terry该GP用戶信息
    update zx_file 
       set zx02='诸葛钱好',
@@ -107,14 +108,14 @@ DROP TABLE myemployees2
     where zx01 = 'terry';
 ```
 使用子查询更新关联数据
-```
+```sql
 --将Tiptop GP系统中所有没有登录过的用户密码、开立日期更新为与terry用户的一样
 update zx_file 
    set (zx10,zxdate) = (select zx10,zxdate from zx_file where zx01 = 'terry')
   where zx19 = 'N';
 ```
 复制表数据：根据一个表的数据更新另外一个表的数据
-```
+```sql
 --將Tiptop GP系統分群碼imz_file的資料複製更新到料件基本資料ima_file中對應的欄位  
 update ima_file 
    set ima_file.ima07= (select imz_file.imz07  from imz_file where imz_file.imz01 = ima_file.ima06),--ABC碼
@@ -123,7 +124,7 @@ update ima_file
 ```
 
 #### 删除数据
-```
+```sql
 delete from studentinfo where studentid=1;
 //提交数据
 commit;
@@ -142,7 +143,7 @@ COMMIT;
 ```
 
 #### 约束
-```
+```sql
 --创建表
 CREATE TABLE emp8(
 --唯一约束
@@ -187,6 +188,7 @@ salary NUMBER(15, 2),
 --表级约束 
 CONSTRAINT emp9_email_uk UNIQUE(email) --指明该约束作用于email这一列上
 )
+
 --
 SELECT * 
 FROM emp9
@@ -254,6 +256,7 @@ CONSTRAINT emp11_id_pk PRIMARY KEY(ID),
 CONSTRAINT emp11_department_id_fk FOREIGN KEY(department_id) REFERENCES departments(department_id)
 )
 --
+
 SELECT * 
 FROM emp11
 --
@@ -533,7 +536,7 @@ END AS '别名';
 
 #### 多表连接
 1. 外连接
-分为左外连接和右外连接
+分为左外连接和右外连接（左连接就是左表完全显示而右边只显示和左边连接所匹配的部分）
 ```
 例子1、如果别人要的数据是那个部门没有员工？
 
@@ -555,15 +558,12 @@ Select * from departments d , employees e
 SQL1999语法如下：
      Select * from departments d Right  join employees e
          On d.department_id=  e.department_id
-         Where e.department_id is null;
-     
-      
+         Where e.department_id is null; 
 ```
 2. 自连接
 讲明白的就是自己跟自己连接
 ```
 例子：Select * from shuxin a , shuxin b  where a.zi_id=b.fu_id   
-
 ```
 3. 笛卡尔集 与叉集(CROSS JOIN)
 笛卡尔集的意思是：两张表的连接关系跟没用连一样，就会发生笛卡尔集,
@@ -613,7 +613,6 @@ Select  * from
 ```
 例子：Select * from employees e full join departments d
         On e.department_id=d.department_id;
-
 ```
 
 #### 组函数
@@ -643,10 +642,14 @@ select min(sal) from scott.emp;
 #### group by 和 having
 select语句中含有组合函数时才能使用group by
 having类似于where，只是在条件筛选时含有组函数则必须用having代替where
-```
+```sql
 //将person表中同名的组筛选出来
 SELECT name FROM person 
 GROUP BY name;
+
+select AVG(age),id from emploies
+group by id
+having sum(time) > 10
 ```
 
 #### 子查询

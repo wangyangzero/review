@@ -1,3 +1,21 @@
+## 什么是移动动态化？
+
+移动指的是移动端，包括安卓、iOS。动态化则是动态部署和逻辑下发到客户端的能力。移动动态最好的状态就是让移动应用和 Web 一样，想发就发！
+
+### 为什么移动端要强调动态化的能力？
+
+原因有如下三大点：
+
+-   业务迭代太快。当下大部分团队都是敏捷开发的模式，即使两周做一次迭代，产品周期还是会觉得长，有些应用不能及时上线。
+-   应用市场审核慢。安卓基本当天发应用市场，当天就能够有更新。但 iOS 需要约 3-4 天来审核。假设有些功能需要定时上线，iOS 审核时间必须要考虑进去。
+-   用户升级周期长。统计表明，每一个安卓版本发布，一周内会有 70% 的用户更新，一个月其余用户才能陆续完成更新。
+
+移动动态化方案共性，有如下三点：
+
+-   跨平台。
+-   布局。约定 DSL，保证渲染性能。
+-   逻辑。Android 和 iOS 必须共用解释器。
+
 ## 哲学三问
 
 ### Hybrid是什么
@@ -38,7 +56,7 @@ H5中有一个离线缓存的机制，该机制是实现Hybrid app像Native app�
 
 ### 通讯原理
 
-- `JS`调用`Native`方法，一般是使用注入`API`的方式，通过`WebView`提供的接口，项`JavaScript`的`Context`中注入对象或者方法，让`JavaScript`调用时，直接执行相应的`Native`代码逻辑，达到`Js`调用`Native`的目的
+- `JS`调用`Native`方法，一般是使用注入`API`的方式，通过`WebView`提供的接口，向`JavaScript`的`Context`中注入对象或者方法，让`JavaScript`调用时，直接执行相应的`Native`代码逻辑，达到`Js`调用`Native`的目的
 - `Native`调用`JavaScript`则直接执行拼接好的`JavaScript`代码即可
 
 #### H5调用Native
@@ -57,39 +75,25 @@ H5中有一个离线缓存的机制，该机制是实现Hybrid app像Native app�
 3. 接收到JS的消息，解析参数后根据句柄寻找相应的方法执行后以data作为参数并与句柄或callbackId等一起返回
 4. 接收Native回传的数据，根据句柄或回调id执行相应的回调
 5. Native也是类似的方法
-(function () {
-    var id = 0,
-        callbacks = {};
-
-    window.JSBridge = {
-        // 调用 Native
-        invoke: function(bridgeName, callback, data) {
-            // 判断环境，获取不同的 nativeBridge
-            var thisId = id ++; // 获取唯一 id
-            callbacks[thisId] = callback; // 存储 Callback
-            nativeBridge.postMessage({
-                bridgeName: bridgeName,
-                data: data || {},
-                callbackId: thisId // 传到 Native 端
-            });
-        },
-        receiveMessage: function(msg) {
-            var bridgeName = msg.bridgeName,	// 使用句柄bridge标识native方法
-                data = msg.data || {},
-                callbackId = msg.callbackId; // Native 将 callbackId 原封不动传回
-            // 具体逻辑
-            // bridgeName 和 callbackId 不会同时存在
-            if (callbackId) {
-                if (callbacks[callbackId]) { // 找到相应句柄
-                    callbacks[callbackId](msg.data); // 执行调用
-                }
-            } elseif (bridgeName) {
-
-            }
-        }
-    };
-})();
-
+class JSBridge{
+  constructor(){
+    this.callbacks = {};
+  }
+  // 上传信息
+	invoke(bridgeName, callback, data) {
+    this.callbacks[bridgeName] = callback;
+    // native接口
+    nativeBridge.postMessage({
+      bridgeName,
+      data,
+    })
+  }
+  // 接收信息
+  receiveMessage(res) {
+    const {bridgeName, data} = res;
+    this.callbacks[bridgeName].call(this,...data);
+  }
+}
 ```
 
 ### 注入方式

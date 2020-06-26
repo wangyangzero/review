@@ -23,51 +23,7 @@
 
 以 Chrome 浏览器中为例，当你打开一个 Tab 页时，其实就是创建了一个进程，一个进程中可以有多个线程（下文会详细介绍），比如渲染线程、JS 引擎线程、HTTP 请求线程等等。当你发起一个请求时，其实就是创建了一个线程，当请求结束后，该线程可能就会被销毁。
 
-## 二、浏览器内核
-
----
-
-简单来说浏览器内核是通过取得页面内容、整理信息（应用 CSS）、计算和组合最终输出可视化的图像结果，通常也被称为渲染引擎。
-
-浏览器内核是多线程，在内核控制下各线程相互配合以保持同步，一个浏览器通常由以下常驻线程组成：
-
-- GUI 渲染线程
-- JavaScript 引擎线程
-- 定时触发器线程
-- 事件触发线程
-- 异步 http 请求线程
-
-### 1.GUI 渲染线程
-
-- 主要负责页面的渲染，解析 HTML、CSS，构建 DOM 树，布局和绘制等。
-- 当界面需要重绘或者由于某种操作引发回流时，将执行该线程。
-- 该线程与 JS 引擎线程互斥，当执行 JS 引擎线程时，GUI 渲染会被挂起，当任务队列空闲时，主线程才会去执行 GUI 渲染。
-
-### 2.JS 引擎线程
-
-- 该线程当然是主要负责处理 JavaScript 脚本，执行代码。
-- 也是主要负责执行准备好待执行的事件，即定时器计数结束，或者异步请求成功并正确返回时，将依次进入任务队列，等待 JS 引擎线程的执行。
-- 当然，该线程与 GUI 渲染线程互斥，当 JS 引擎线程执行 JavaScript 脚本时间过长，将导致页面渲染的阻塞。
-
-### 3.定时器触发线程
-
-- 负责执行异步定时器一类的函数的线程，如： setTimeout，setInterval。
-- 主线程依次执行代码时，遇到定时器，会将定时器交给该线程处理，当计数完毕后，事件触发线程会将计数完毕后的事件加入到任务队列的尾部，等待 JS 引擎线程执行。
-
-### 4.事件触发线程
-
-- 主要负责将准备好的事件交给 JS 引擎线程执行。
-
-比如 setTimeout 定时器计数结束， ajax 等异步请求成功并触发回调函数，或者用户触发点击事件时，该线程会将整装待发的事件依次加入到任务队列的队尾，等待 JS 引擎线程的执行。
-
-### 5.异步 http 请求线程
-
-- 负责执行异步请求一类的函数的线程，如： Promise，axios，ajax 等。
-- 主线程依次执行代码时，遇到异步请求，会将函数交给该线程处理，当监听到状态码变更，如果有回调函数，事件触发线程会将回调函数加入到任务队列的尾部，等待 JS 引擎线程执行。
-
-## 三、浏览器中的 Event Loop
-
----
+## 二、浏览器中的 Event Loop
 
 ### 1.Micro-Task 与 Macro-Task
 
@@ -124,7 +80,7 @@ setTimeout(() => {
 - 在执行宏任务 setTimeout1 时会生成微任务 Promise2 ，放入微任务队列中，接着先去清空微任务队列中的所有任务，输出 Promise2
 - 清空完微任务队列中的所有任务后，就又会去宏任务队列取一个，这回执行的是 setTimeout2
 
-## 四、Node 中的 Event Loop
+## 三、Node 中的 Event Loop
 
 ---
 
@@ -239,17 +195,19 @@ Node 端事件循环中的异步队列也是这两种：macro（宏任务）队�
 
 但当二者在异步 i/o callback 内部调用时，总是先执行 setImmediate，再执行 setTimeout
 
-    const fs = require('fs')
-    fs.readFile(__filename, () => {
-        setTimeout(() => {
-            console.log('timeout');
-        }, 0)
-        setImmediate(() => {
-            console.log('immediate')
-        })
+```js
+const fs = require('fs')
+fs.readFile(__filename, () => {
+    setTimeout(() => {
+        console.log('timeout');
+    }, 0)
+    setImmediate(() => {
+        console.log('immediate')
     })
-    // immediate
-    // timeout
+})
+// immediate
+// timeout
+```
 
 在上述代码中，setImmediate 永远先执行。因为两个代码写在 IO 回调中，IO 回调是在 poll 阶段执行，当回调执行完毕后队列为空，发现存在 setImmediate 回调，所以就直接跳转到 check 阶段去执行回调了。
 
@@ -277,7 +235,7 @@ Node 端事件循环中的异步队列也是这两种：macro（宏任务）队�
     })
     // nextTick=>nextTick=>nextTick=>nextTick=>timer1=>promise1
 
-## 五、Node 与浏览器的 Event Loop 差异
+## 四、Node 与浏览器的 Event Loop 差异
 
 ---
 
@@ -322,7 +280,7 @@ Node 端运行结果分两种情况：
 Node 端的处理过程如下：  
 ![](https://camo.githubusercontent.com/34b3491060826045c67bd57c6dcf97222620a722/68747470733a2f2f757365722d676f6c642d63646e2e786974752e696f2f323031392f312f31322f313638343164356638353436383034373f773d35393826683d33333326663d67696626733d343637363635)
 
-## 六、总结
+## 五、总结
 
 ---
 
@@ -330,10 +288,6 @@ Node 端的处理过程如下：
 
 - Node 端，microtask 在事件循环的各个阶段之间执行
 - 浏览器端，microtask 在事件循环的 macrotask 执行完之后执行
-
-## 后记
-
-文章于 2019.1.16 晚，对最后一个例子在 node 运行结果，重新修改！再次特别感谢[zy445566](https://juejin.im/user/59c335e95188254f531d0b51)和[BuptStEve](https://github.com/BuptStEve)的精彩点评，**由于 node 版本更新到 11，Event Loop 运行原理发生了变化，一旦执行一个阶段里的一个宏任务(setTimeout,setInterval 和 setImmediate)就立刻执行微任务队列，这点就跟浏览器端一致**。
 
 ## 参考文章
 
