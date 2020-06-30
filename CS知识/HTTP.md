@@ -1488,6 +1488,22 @@ CDN（Content Delivery Network，内容分发网络）是构建在现有互联�
 
 PS：CNAME 别名解析是将域名指向一个网址（域名）
 
+### 其他
+
+#### 如何判断一个IP是不是国内IP？
+
+调用接口，输入ip，获取结果
+
+#### POST一般可以发送什么类型的文件
+
+1. application/x-www-form-urlencoded
+2. multipart/form-data
+3. application/json
+4. text/xml
+5. text/plain
+
+
+
 ## 从零开始实现一个简易的HTTP服务器
 
 技术栈：

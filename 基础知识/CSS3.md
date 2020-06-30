@@ -160,6 +160,17 @@ margin基于父容器的width计算，垂直方向存在塌陷问题。
 
 ### rem布局
 
+### vw，vh，vmin，vmax的区别
+
+```
+px：像素 相对长度单位，相对于显示器屏幕分辨率(推荐使用)
+em：相对长度单位 基准点为父节点字体的大小，如果自身定义了font-size按自身来计算（浏览器默认字体是16px）。
+vw：viewpoint width，视窗宽度，1vw等于视窗宽度的1%。
+vh：viewpoint height，视窗高度，1vh等于视窗高度的1%。
+vmin：vw和vh中较小的那个。vmax：vw和vh中较大的那个。
+%:百分比in:寸cm:厘米mm:毫米pt:point，大约1/72寸pc:pica，大约6pt，1/6寸
+```
+
 #### 换算关系
 
 ```

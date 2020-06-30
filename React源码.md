@@ -330,8 +330,6 @@ function ChildrenDemo(props){
 }
 ```
 
-## 
-
 ## React更新机制
 
 ### 创建更新的方式
