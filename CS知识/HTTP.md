@@ -190,8 +190,6 @@
 - **if-Modified-Since**: 浏览器再次请求服务器的时候，请求头会包含此字段，后面跟着在缓存中获得的最后修改时间。
 - **if-None-Match**： 再次请求服务器时，浏览器的请求报文头部会包含此字段，后面的值为在缓存中获取的标识
 
-![image](http://jiangliuer.vip/download/image/lowbuffer.jpg)
-
 ##### 缓存机制流程图
 
 ![image](https://img-blog.csdnimg.cn/20190304103021382.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L0p1dGFsX2xqdA==,size_16,color_FFFFFF,t_70)
@@ -408,7 +406,6 @@ app.get('/say', function(req, res) {
   res.end(`${callback}('我不爱你')`)
 })
 app.listen(3000)
-
 ```
 
 #### `CROS`
@@ -587,7 +584,6 @@ ws.on('connection', function(socket) {
         socket.send(`这里是服务端对你说的话： ${msg}`);
     });
 });
-
 ```
 
 ## Web服务器知识扩展
@@ -754,7 +750,7 @@ server {
 1. **缓存处理**：相比HTTP1.0，HTTP1.1引入Etag，if-Unmodified-Since，if-Match,if-None-Match等字段来控制缓存策略
 2. HTTP1.1的请求需要指定Host header（即指定主机）。因为1.0中认为每个服务器只绑定一个ip，而随着虚拟主机技术的兴起，一个服务器有多个虚拟主机并共享一个真实ip
 3. **keep-alive**：在http早期，每个http请求都要求打开一个tcp socket连接，并且使用一次之后就断开这个tcp连接。使用keep-alive可以改善这种状态，即在一次TCP连接中可以持续发送多份数据而不会断开连接。通过使用keep-alive机制，可以减少tcp连接建立次数，也意味着可以减少TIME_WAIT状态连接，以此提高性能和提高http服务器的吞吐率(更少的tcp连接意味着更少的系统内核调用,socket的accept()和close()调用)。
-   但是，keep-alive并不是免费的午餐,长时间的tcp连接容易导致系统资源无效占用。配置不当的keep-alive，有时比重复利用连接带来的损失还更大。所以，正确地设置keep-alive timeout时间非常重要。
+   但是，keep-alive并不是免费的午餐,长时间的tcp连接容易导致系统资源无效占用。配置不当的keep-alive，有时比重复利用连接带来的损失还更大。所以，正确地设置keep-alive timeout时间非常重要。同时keep-alive还有一个max属性，表示连接可以发送请求的最大值
 
 ### HTTP2.0
 
@@ -804,7 +800,7 @@ HTTPS既使用了对称加密算法又使用了非对称加密算法。简单来
 
 ##### 证书验证
 
-浏览器使用内置的根证书中的公钥来对收到的证书进行认证，如果一致，就表示该安全证书是由可信任的颁证机构签发的，这个网站就是安全可靠的;如果该SSL证书不是根服务器签发的，浏览器就会自动检查上一级的发证机构，直到找到相应的根证书颁发机构，如果该根证书颁发机构是可信的，这个网站的SSL证 书也是可信的。
+浏览器使用内置的根证书中的公钥来对收到的证书进行认证（取出证书中的公钥），如果一致，就表示该安全证书是由可信任的颁证机构签发的，这个网站就是安全可靠的;如果该SSL证书不是根服务器签发的，浏览器就会自动检查上一级的发证机构，直到找到相应的根证书颁发机构，如果该根证书颁发机构是可信的，这个网站的SSL证 书也是可信的。
 
 ##### 为什么ssl证书有过期时间
 
@@ -832,7 +828,6 @@ HTTPS既使用了对称加密算法又使用了非对称加密算法。简单来
 
 3. 客户端向服务端发一个结束握手的请求，表示之后的报文都以约定好的密钥进行加密/解密
 
-
 **为什么握手次数减少了一次**
 
 这主要是因为之前ssl连接使用的RSA算法（关于这个算法可以参考我的上一篇文章[从零开始的计算机网络基础](https://juejin.im/post/5ea3c7036fb9a03c8122da2b)）,而TLS 1.3使用的是[ECDH算法](https://blog.csdn.net/mrpre/article/details/72850644)
@@ -849,7 +844,7 @@ HTTPS既使用了对称加密算法又使用了非对称加密算法。简单来
 1. **减少了TCP和TLS握手时间**：QUIC是基于UDP协议，因为UDP协议本身是无连接的，连接时只需一次交互，半个握手的时间
 2. **保留HTTP2.0多路复用的特性**，但QUIC中一个连接上的多个stream之间没有依赖，因此丢包时避免了队头阻塞的问题
 3. **优化重传**，TCP的重传时，封包的序列号不变，而QUIC则会改用一个新的序列号。这样做的好处是收到ACK时能找到其唯一对应的封包
-4. **流量控制**：通过流量控制可以限制客户端传输数据的大小，接收端可以只保留相应大小的接收buffer。因为QUIC是基于UDP，UDP本身不具备流量控制功能
+4. **流量控制**：因为QUIC是基于UDP，UDP本身不具备流量控制功能，所以QUIC在UDP上增加了一层用于流量控制和重传
 5. **连接迁移**：TCP连接基于四元组（源IP，源端口，目的IP，目的端口），有一个发生改变则需要重新建立连接。而QUIC使用一个64随机数Connection ID作为连接标识，即使IP或端口发生变化，Connection ID没有变化，那么连接可以维持
 
 ## Web安全

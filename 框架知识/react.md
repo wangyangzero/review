@@ -87,6 +87,10 @@ class Hello extends React.Component{
 
 ### react hook
 
+- React第一次渲染函数组件是会同时创建一个对象与之共存，该对象是该组件实例的定制对象而不是全局对象。只要组件存在于DOM中，这个组件的对象就会一直存在
+- 每次调用一个hook时，React就会向hooks中进行添加
+- 创建状态是采用的是单例模式，即当已有相同的state值的hook时，不会创建一个新状态而是返回现有的状态
+
 ```jsx
 // rn中的淡入动画组件
 export const FadeInView = props => {
@@ -122,10 +126,80 @@ export const FadeInView = props => {
 [more](https://juejin.im/post/5e169204e51d454112714580)
 
 1. 高阶组件是一个函数接受一个组件返回一个组件
+
 2. 使用高阶组件可以让代码变得更加优雅，同时增强代码的复用性和灵活性。页面复用，权限控制，组件渲染性能追踪。
+
 3. 实现高阶组件的两种方法
+
    - 属性代理是从“组合”的角度出发，这样有利于从外部去操作 WrappedComponent，可以操作的对象是 props，或者在 WrappedComponent 外面加一些拦截器，控制器等。
+
+     ```tsx
+     import React form 'react';
+     
+     interface IState {
+       name: string
+     }
+     function HOC(wrappedComponent) {
+       return class HOC extends React.Component<any, IState>{
+         constrctor(props) {
+           super(props);
+           this.state = {
+             name: ''
+           }
+           this.onChange = this.oChange.bind(this);
+         }
+         
+         onChange(e) {
+           this.setState({
+             name: e.target.value
+           })
+         }
+         render() {
+           const newProps = {
+             name: {
+               value: this.state.name,
+               onChange: this.onChange
+             }
+           }
+           
+           return <WrappedComponent {...this.props} {...newProps}>
+         }
+       }
+     }
+             
+     // 使用
+     class Input extends React.Component {
+     	render() {
+         return <><input {...this.props.name}/></>
+       }          
+     }
+     const Input = HOC(Input);
+     ```
+
+     
+
    - 反向继承则是从“继承”的角度出发，是从内部去操作 WrappedComponent，也就是可以操作组件内部的 state ，生命周期，render函数等等。
+
+   ```tsx
+   function HOC(WrappedComponent){
+     const didMount = WrappedComponent.prototype.componentDidMount;
+     // 继承了传入组件
+     return class HOC extends WrappedComponent {
+       async componentDidMount(){
+         if (didMount) {
+           await didMount.apply(this);
+         }
+         // 将 state 中的 number 值修改成 2
+         this.setState({ number: 2 });
+       }
+   
+       render(){
+         //使用 super 调用传入组件的 render 方法
+         return super.render();
+       }
+     }
+   }
+   ```
 
 | 功能列表                             | 属性代理 | 反向继承 |
 | ------------------------------------ | -------- | -------- |
@@ -208,16 +282,19 @@ function Children(){
 | 0     | B    | 1        | 0        | oldIndex(1)>maxIndex(0),maxIndex=oldIndex         |
 | 1     | A    | 0        | 1        | oldIndex(0)<maxIndex(1),节点A移动至index(1)的位置 |
 | 2     | D    | 3        | 1        | oldIndex(3)>maxIndex(1),maxIndex=oldIndex         |
-| 3     | C    | 2        | 3        | oldIndex(2)<maxIndex(3),节点C移动至index(2)的位置 |
+| 3     | C    | 2        | 3        | oldIndex(2)<maxIndex(3),节点C移动至index(3)的位置 |
 
 ### react fiber架构
 
 **链表树遍历算法**: 通过 **节点保存与映射**，便能够随时地进行 停止和重启，这样便能达到实现任务分割的基本前提；
 
-- 1、首先通过不断遍历子节点，到树末尾；
-- 2、开始通过 sibling 遍历兄弟节点；
-- 3、return 返回父节点，继续执行2；
-- 4、直到 root 节点后，跳出遍历；
+1. 首先通过不断遍历子节点，到树末尾；
+
+2. 开始通过 sibling 遍历兄弟节点；
+
+3. return 返回父节点，继续执行2；
+
+4. 直到 root 节点后，跳出遍历；
 
 ### 单向数据流，双向数据流
 

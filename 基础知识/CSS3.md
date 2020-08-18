@@ -653,6 +653,7 @@ width:auto会使元素撑满整个父元素，margin、border、padding、conten
             width: 100%;
             background: green;
         }
+
 ```
 5. 双飞翼布局: 类似于圣杯，但使用了子元素margin代替父容器的padding
 ```css
@@ -814,7 +815,6 @@ width:auto会使元素撑满整个父元素，margin、border、padding、conten
     border-left: 100px solid transparent;
     border-right: 100px solid transparent;
     border-bottom: 100px solid transparent;
-        
 }
 //正方体
 <!DOCTYPE html>

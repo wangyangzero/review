@@ -338,7 +338,270 @@ function ChildrenDemo(props){
 - forceUpdate()
 - setState()
 
-### ReactDOM,render
-
 #### render和hydrate(调和dom中的节点，类似缓存)
+
+当服务端和客户端渲染不一致时，`render`会做`dom patch`，使得最后的渲染内容和客户端一致。而`hydrate`不会对整个`dom`树做`dom patch`，其只会对`text Content`内容做`patch`，对于属性并不会做`patch`
+
+### fiber
+
+每一个`ReactElement`对应一个`Fiber`对象，可用于记录各节点的状态（使得function component拥有状态），并串联整个应用形成树结构
+
+![react-tree-demo-Fiber树.png](https://i.loli.net/2020/08/03/Nw9qkylJZ3Bni8x.png)
+
+#### `fiberRoot`的数据结构
+
+```typescript
+type BaseFiberRootProperties = {
+  // root节点，render方法接收的第二个参数
+  containerInfo: any,
+  // 只有在持久更新中会用到，也就是不支持增量更新的平台，react-dom不会用到
+  pendingChildren: any,
+  // 当前应用对于的Fiber对象，是Root Fiber
+  current: Fiber,
+  
+  // 以下的优先级是用来区分
+  // 1) 没有提交（committed）的任务
+  // 2）没有提交的挂起任务
+  // 3）没有提交的可能被挂起的任务
+  // 我们选择不追踪每个单独的阻塞登记，为了兼顾性能
+  // 最老和新的在提交的时候被挂起的任务
+  earliestSuspendedTime: ExpirationTime,
+  latestSuspendedTime: ExpirationTime,
+  
+  // 如果有错误被抛出并且没有更多的更新存在，我们尝试在处理错误前同步重新从头渲染
+  // 在`renderRoot`出现无法处理的错误是会被设置为`true`
+  didError: boolean,
+  
+  // 正在等待提交的任务的`expirationTime`
+  pendingCommitExpirationTime: ExpirationTime,
+  // 已经完成的任务的FiberRoot对象，如果你只有一个Root，那他永远只可能是这个Root对应的Fiber，或者是null
+  // 在commit阶段只会处理这个值对应的任务,标记渲染完成的fiber
+  finishedWork: Fiber | null,
+  // 在任务被挂起的时候通过setTimeout设置的返回内容，用来下一次如果有新的任务挂起时清理还没触发的timeout
+  timeoutHandle: TimeoutHandle | NoTimeout,
+  // 顶层context对象，只有主动调用`renderSubtreeIntoContainer`时才会有用
+  context: Object | null,
+  pendingContext: Object | null,
+  // 用来确定第一次渲染的时候是否需要融合
+  +hydrate: boolean,
+  // 当前root上剩余的过期时间
+  // TODO：提到renderer里面去处理
+  nextExpirationTime: ExpirationTime,
+  // 当前更新对应的过期时间
+  expirationTime: ExpirationTime,
+  // 顶层批次（批处理任务）这个变量指明一个commit是否应该被推迟
+  // 同时包括完成之后的回调
+  // 貌似用在测试的时候
+  firstBatch: Batch | null,
+  // root之间关联的链表结构、
+  nextScheduleRoot: FiberRoot | null,
+}
+```
+
+#### `fiber`的数据结构
+
+```ts
+type Fiber {
+	// 标记不同的组件类型
+  tag: WorkTag,
+
+  // ReactElement里面的key
+  key: null | string,
+    
+  // ReactElement.type，也就是我们调用`createElement`的第一个参数
+  elementType: any,
+    
+  // 异步组件resolved之后返回的内容，一般是`function`或者`class`
+  type: any,
+    
+  // 跟当前Fiber相关本地状态（比如浏览器环境就是DOM节点）
+  stateNode: any,
+  
+  // 指向他在Fiber节点树中的`parent`，用来在处理完这个节点之后向上返回
+    return: Fiber | null,
+      
+  // 单链表树结构
+  // 指向自己的第一个子节点
+  child: FIber | null,
+  // 指向自己的兄弟结构
+  // 兄弟节点的return指向同一个父节点
+  sibling: Fiber | null,
+  index: number,
+  
+  // ref属性
+  ref: null | (((handle: mixed) => void) & {_stringRef?: string}) | RefObject,
+    
+  // 新的变动带来的新的props
+  pendingProps: any,
+  // 上一次渲染完成之后的props
+  memoizedProps: any,
+    
+  // 该Fiber对应的组件产生的Update会存放在这个队列里
+  updateQueue: UpdateQueue<any> | null,
+    
+  // 上一次渲染的时候的state
+  memoizedState: any,
+    
+  // 一个列表，存放这个Fiber依赖的context
+  firstContextDependency: ContextDependency<mixed> | null,
+    
+  // 用来描述当前Fiber和他子树的`Bitfield`
+  // 共存的模式表示这个子树是否默认是异步渲染的
+  // Fiber被创建的时候他会继承父Fiber
+  // 其他的标识也可以在创建的时候被设置
+  // 但是在创建之后不应该再被修改，特别是他的子Fiber创建之前
+  mode: TypeOfMode,
+    
+  // Effect
+  // 用来记录Side Effect
+  effectTag: SideeffectTag,
+    
+  // 单链表用于快速查找下一个side effect
+  nextEffect: Fiber | null,
+    
+  // 子树中第一个side effect
+  firstEffect: Fiber | null,
+    
+  // 子树中最后一个side effect
+  lastEffect: Fiber | null,
+    
+  // 代表人物在未来的那个时间点应该完成
+  // 不包括他的子树产生的任务
+  expirationTime: ExpirationTime,
+    
+  // 快速确定子树中是否有不在等待的变化
+  childExpirationTime: ExpirationTime,
+    
+  // 在Fiber树更新的过程中，每个Fiber都会有一个跟其对应的Fiber
+  // 我们称他为`current <==> workInProgress`
+  // 在渲染完成之后他们会交换位置
+  alternate: Fiber | null,
+    
+  // 下面是调试相关的，收集每个Fiber和子树渲染时间的
+    
+  actualDuration?: number,
+  actualStartTime?: number,
+  treeBaseDuration?: number
+}
+```
+
+#### `update`数据结构
+
+```ts
+type Update<state> = {
+  // 更新的时间
+  expirationTime: ExpirationTime,
+  // export const UpdateState = 0;
+  // export const ReplaceState = 1;
+  // export const ForceUpdate = 2;
+  // export const CaptureUpdate = 3;
+  // 指定更新的类型，值为以上几种
+  tag: 0 | 1 | 2 | 3,
+  // 更新内容，比如`setState`接收的第一个参数
+  payload: any,
+  // 对应的糊掉，`setState`，`render`都有
+  callback: (() => mixed) | null,
+  
+  // 指向下一个更新
+  next: Update<State> | null,
+  // 指向下一个`side effect`
+  nextEffect: Update<State> | null,
+};
+```
+
+#### `updateQueue`数据结构
+
+```ts
+type UpdateQueue<State> = {
+  // 每次操作完更新之后的`state`
+  baseState: State,
+  
+  // 队列中的第一个`Update`
+  firstUpdate: Update<State> | null,
+  // 队里中最后一个`Update`
+  lastUpdate: Update<State> | null,
+  
+  // 第一个捕获类型的`Update`
+  firstCaptureUpdate: Update<State> | null,
+  // 最后一个捕获类型的`Update`
+  lastCaptureUpdate: Update<State> | null,
+  
+  // 第一个`side effect`
+  firstEffect: Update<State> | null,
+  // 最后一个`side effect`
+  lastEffect: Update<State> | null,
+  
+  // 第一个捕获产生的`side effect`
+  firstCapturedEffect: Update<State> | null,
+  // 最后一个捕获产生的`side effect`
+  lastCapturedEffect: Update<State> | null,
+}
+```
+
+#### enqueueUpdate
+
+```ts
+// 进行state数组的更新
+export function enqueueUpdate<State>(fiber: Fiber, update: Update<State>) {
+  // Update queues are created lazily.
+  const alternate = fiber.alternate; // fiber数据结构中的属性，作为workInProgress
+  let queue1;
+  let queue2;
+  if (alternate === null) {
+    // There's only one fiber.
+    queue1 = fiber.updateQueue;
+    queue2 = null; // workInProgress 为空时
+    if (queue1 === null) {
+      queue1 = fiber.updateQueue = createUpdateQueue(fiber.memoizedState); // 初始化更新队列
+    }
+  } else {
+    // There are two owners.
+    queue1 = fiber.updateQueue;
+    queue2 = alternate.updateQueue;
+    if (queue1 === null) {
+      if (queue2 === null) {
+        // Neither fiber has an update queue. Create new ones.
+        // 跟alternate === null时一致，fiber.updateQueue为空时将进行初始化
+        queue1 = fiber.updateQueue = createUpdateQueue(fiber.memoizedState);
+        queue2 = alternate.updateQueue = createUpdateQueue(
+          alternate.memoizedState,
+        );
+      } else {
+        // Only one fiber has an update queue. Clone to create a new one.
+        queue1 = fiber.updateQueue = cloneUpdateQueue(queue2);
+      }
+    } else {
+      if (queue2 === null) {
+        // Only one fiber has an update queue. Clone to create a new one.
+        queue2 = alternate.updateQueue = cloneUpdateQueue(queue1);
+      } else {
+        // Both owners have an update queue.
+      }
+    }
+  }
+  if (queue2 === null || queue1 === queue2) {
+    // There's only a single queue.
+    appendUpdateToQueue(queue1, update); // 放置于更新队列的末尾
+  } else {
+    // There are two queues. We need to append the update to both queues,
+    // while accounting for the persistent structure of the list — we don't
+    // want the same update to be added multiple times.
+    if (queue1.lastUpdate === null || queue2.lastUpdate === null) {
+      // One of the queues is not empty. We must add the update to both queues.
+      appendUpdateToQueue(queue1, update);
+      appendUpdateToQueue(queue2, update);
+    } else {
+      // Both queues are non-empty. The last update is the same in both lists,
+      // because of structural sharing. So, only append to one of the lists.
+      appendUpdateToQueue(queue1, update);
+      // But we still need to update the `lastUpdate` pointer of queue2.
+      queue2.lastUpdate = update;
+    }
+  }
+}
+```
+
+
+
+
 
